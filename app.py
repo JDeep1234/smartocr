@@ -1,11 +1,13 @@
 import streamlit as st
 from transformers import BlipProcessor, BlipForConditionalGeneration
 from PIL import Image
+import re
+import torch
 
 # Load the BLIP model and processor
 MODEL_NAME = "Salesforce/blip-image-captioning-base"
 processor = BlipProcessor.from_pretrained(MODEL_NAME)
-model = BlipForConditionalGeneration.from_pretrained(MODEL_NAME)
+model = BlipForConditionalGeneration.from_pretrained(MODEL_NAME, torch_dtype=torch.float32)
 
 def extract_basic_info(text):
     # Extract brand name (simplified heuristic)
@@ -33,6 +35,8 @@ def extract_basic_info(text):
 
 def generate_output(image):
     inputs = processor(images=image, return_tensors="pt")
+    inputs = {k: v.to("cuda" if torch.cuda.is_available() else "cpu") for k, v in inputs.items()}
+    model.to("cuda" if torch.cuda.is_available() else "cpu")
     outputs = model.generate(**inputs, max_new_tokens=50)
     return processor.decode(outputs[0], skip_special_tokens=True)
 
