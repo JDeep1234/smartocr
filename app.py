@@ -1,13 +1,13 @@
 import streamlit as st
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import BlipProcessor, BlipForConditionalGeneration
 from PIL import Image
 import re
 from datetime import datetime
 
-# Load the lightweight model and tokenizer
-MODEL_NAME = "distilgpt2"
-tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
+# Load the BLIP model and processor
+MODEL_NAME = "Salesforce/blip-image-captioning-base"
+processor = BlipProcessor.from_pretrained(MODEL_NAME)
+model = BlipForConditionalGeneration.from_pretrained(MODEL_NAME)
 
 def extract_info(text):
     # Regex patterns for extraction
@@ -65,13 +65,13 @@ def extract_info(text):
 
     return brand_name, expiry_date, expired, life_span_days, object_count
 
-def generate_output(prompt):
-    inputs = tokenizer.encode(prompt, return_tensors="pt")
-    outputs = model.generate(inputs, max_new_tokens=200, do_sample=True)
-    return tokenizer.decode(outputs[0], skip_special_tokens=True)
+def generate_output(image, query):
+    inputs = processor(images=image, text=query, return_tensors="pt")
+    outputs = model.generate(**inputs, max_new_tokens=200)
+    return processor.decode(outputs[0], skip_special_tokens=True)
 
 # Streamlit app UI
-st.title("Lightweight Streamlit App for Information Extraction")
+st.title("Enhanced Streamlit App with BLIP for Information Extraction")
 
 uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
 text_input = st.text_area("Enter your query", "Extract brand name, expiry date, expired status, expected life span in days, and object counts.")
@@ -82,9 +82,8 @@ if uploaded_file and text_input:
 
     st.write("Processing...")
 
-    # Simulate processing and generate mock output (replace with real model logic)
-    mock_prompt = f"Image description: [Mock description of the uploaded image]. Query: {text_input}"
-    generated_text = generate_output(mock_prompt)
+    # Process the image and query with BLIP
+    generated_text = generate_output(image, text_input)
 
     # Extract information from generated text
     brand_name, expiry_date, expired, life_span_days, object_count = extract_info(generated_text)
